@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
 import 'core/config/supabase_config.dart';
+
+// Auth
 import 'features/auth/data/datasources/auth_remote_datasource.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
@@ -15,13 +17,22 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/register_screen.dart';
 import 'features/auth/presentation/screens/reset_password_screen.dart';
 
+// User
+import 'features/user/data/datasources/user_remote_datasource.dart';
+import 'features/user/data/repositories/user_repository_impl.dart';
+import 'features/user/domain/usecases/get_current_user_usecase.dart';
+import 'features/user/domain/usecases/update_profile_usecase.dart';
+import 'features/user/domain/usecases/upload_avatar_usecase.dart';
+import 'features/user/domain/usecases/update_avatar_usecase.dart';
+import 'features/user/domain/usecases/delete_avatar_usecase.dart';
+import 'features/user/presentation/providers/user_provider.dart';
+import 'features/user/presentation/screens/profile_screen.dart';
+import 'features/user/presentation/screens/edit_profile_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Cargar variables de entorno
   await dotenv.load(fileName: ".env");
-  
-  // Inicializar Supabase
   await SupabaseConfig.initialize();
   
   runApp(const MyApp());
@@ -32,7 +43,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Configuración de providers
     return MultiProvider(
       providers: [
         // Auth Provider
@@ -46,6 +56,22 @@ class MyApp extends StatelessWidget {
               registerUseCase: RegisterUseCase(repository),
               resetPasswordUseCase: ResetPasswordUseCase(repository),
               authRepository: repository,
+            );
+          },
+        ),
+        
+        // User Provider
+        ChangeNotifierProvider(
+          create: (context) {
+            final dataSource = UserRemoteDataSourceImpl();
+            final repository = UserRepositoryImpl(remoteDataSource: dataSource);
+            
+            return UserProvider(
+              getCurrentUserUseCase: GetCurrentUserUseCase(repository),
+              updateProfileUseCase: UpdateProfileUseCase(repository),
+              uploadAvatarUseCase: UploadAvatarUseCase(repository),
+              updateAvatarUseCase: UpdateAvatarUseCase(repository),
+              deleteAvatarUseCase: DeleteAvatarUseCase(repository),
             );
           },
         ),
@@ -74,10 +100,6 @@ class MyApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.red, width: 2),
-            ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
@@ -90,34 +112,14 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.deepPurple,
-              side: const BorderSide(color: Colors.deepPurple, width: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.deepPurple,
-            ),
-          ),
-          cardTheme: CardTheme(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
         ),
-        // Rutas
         routes: {
           '/': (context) => const AuthWrapper(),
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/reset-password': (context) => const ResetPasswordScreen(),
+          '/profile': (context) => const ProfileScreen(),
+          '/edit-profile': (context) => const EditProfileScreen(),
         },
         initialRoute: '/',
       ),
@@ -125,7 +127,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Widget que maneja la navegación inicial basada en el estado de autenticación
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -133,28 +134,23 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-        // Mostrar splash mientras se verifica el estado de auth
         if (authProvider.status == AuthStatus.initial) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
         
-        // Si está autenticado, mostrar home (por ahora mostramos un placeholder)
         if (authProvider.isAuthenticated) {
           return HomeScreen(user: authProvider.currentUser!);
         }
         
-        // Si no está autenticado, mostrar login
         return const LoginScreen();
       },
     );
   }
 }
 
-// Placeholder para la pantalla principal
+// Home temporal - luego será reemplazado
 class HomeScreen extends StatelessWidget {
   final user;
   
@@ -167,9 +163,9 @@ class HomeScreen extends StatelessWidget {
         title: const Text('PetAdopt'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.person),
             onPressed: () {
-              context.read<AuthProvider>().logout();
+              Navigator.pushNamed(context, '/profile');
             },
           ),
         ],
@@ -178,11 +174,7 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.pets,
-              size: 100,
-              color: Colors.deepPurple,
-            ),
+            const Icon(Icons.pets, size: 100, color: Colors.deepPurple),
             const SizedBox(height: 24),
             Text(
               '¡Bienvenido ${user.nombre}!',
@@ -193,17 +185,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Tipo de usuario: ${user.tipoUsuario}',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                context.read<AuthProvider>().logout();
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('Cerrar Sesión'),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],
         ),
