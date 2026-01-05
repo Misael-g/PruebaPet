@@ -1,4 +1,3 @@
-// Vercel Serverless Function para exponer variables de entorno
 export default function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,9 +9,9 @@ export default function handler(req, res) {
     return;
   }
 
-  // Retornar solo las variables públicas 
+  // Solo exponer variables públicas (sin API keys sensibles)
   res.status(200).json({
-    supabaseUrl: process.env.SUPABASE_URL,
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
   });
 }

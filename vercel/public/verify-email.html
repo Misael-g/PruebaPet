@@ -148,7 +148,6 @@
         </div>
     </div>
 
-    <script src="/env-config.js"></script>
     <script>
         // Obtener parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -157,42 +156,64 @@
         
         const statusContainer = document.getElementById('status-container');
 
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                return config;
+            } catch (error) {
+                console.error('Error loading config:', error);
+                return null;
+            }
+        }
+
         async function verifyEmail() {
-            if (!token || type !== 'signup') {
+            // tomar token o token_hash (compatibilidad)
+            const tokenRaw = urlParams.get('token') || urlParams.get('token_hash');
+            const typeParam = type;
+
+            if (!tokenRaw || typeParam !== 'signup') {
                 showError('Enlace de verificación inválido. Por favor, solicita un nuevo correo de confirmación.');
                 return;
             }
 
+            const token = decodeURIComponent(tokenRaw);
+
             try {
-                // Leer SUPABASE_URL desde env-config (generado desde .env)
-                const SUPABASE_URL = (window.__ENV && window.__ENV.SUPABASE_URL) || '';
-                
-                if (!SUPABASE_URL) {
-                    showError('Error de configuración: SUPABASE_URL no está definida.');
+                const config = await loadConfig();
+                if (!config || !config.supabaseUrl || !config.supabaseAnonKey) {
+                    console.error('Config inválida:', config);
+                    showError('Error de configuración. Contacta al administrador.');
                     return;
                 }
 
-                const response = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+                const res = await fetch(`${config.supabaseUrl}/auth/v1/verify`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'apikey': config.supabaseAnonKey
                     },
-                    body: JSON.stringify({
-                        type: 'signup',
-                        token: token
-                    })
+                    body: JSON.stringify({ type: 'signup', token })
                 });
 
-                const data = await response.json();
+                const json = await res.json().catch(() => null);
+                console.log('verify response:', res.status, json);
 
-                if (response.ok) {
+                if (res.ok) {
                     showSuccess();
-                } else {
-                    showError(data.error_description || 'Error al verificar la cuenta. El enlace puede haber expirado.');
+                    return;
                 }
-            } catch (error) {
+
+                // mensajes más específicos para ayudar a debug
+                if (res.status === 401 || (json && (json.error || json.error_description))) {
+                    console.warn('verify failed detail:', json);
+                    showError('No se pudo verificar la cuenta — el enlace puede ser inválido o expiró.');
+                } else {
+                    showError('Error al verificar la cuenta. Por favor, intenta nuevamente más tarde.');
+                }
+            } catch (err) {
+                console.error('verify error:', err);
                 showError('Error de conexión. Por favor, intenta nuevamente.');
-                console.error('Error:', error);
             }
         }
 

@@ -1,4 +1,4 @@
-name: petadopt
+name: petadopt  # CORREGIDO: era "petadopt" 
 description: "Aplicación de adopción de mascotas con IA"
 publish_to: 'none'
 
@@ -45,7 +45,7 @@ dependencies:
   url_launcher: ^6.2.2
   permission_handler: ^11.1.0
   connectivity_plus: ^5.0.2
-  dartz: ^0.10.1  # NUEVA DEPENDENCIA para Either
+  dartz: ^0.10.1  # Para Either
   
   # HTTP
   http: ^1.1.2
@@ -63,8 +63,3 @@ flutter:
     - .env
     - assets/images/
     - assets/icons/
-    
-  fonts:
-    - family: CustomIcons
-      fonts:
-        - asset: assets/fonts/CustomIcons.ttf

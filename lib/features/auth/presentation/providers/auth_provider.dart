@@ -46,25 +46,31 @@ class AuthProvider with ChangeNotifier {
     _status = AuthStatus.loading;
     notifyListeners();
 
-    final result = await authRepository.getCurrentUser();
-    
-    result.fold(
-      (failure) {
-        _status = AuthStatus.unauthenticated;
-        _currentUser = null;
-        _errorMessage = failure.message;
-      },
-      (user) {
-        if (user != null) {
-          _status = AuthStatus.authenticated;
-          _currentUser = user;
-        } else {
+    try {
+      final result = await authRepository.getCurrentUser();
+      
+      result.fold(
+        (failure) {
           _status = AuthStatus.unauthenticated;
           _currentUser = null;
-        }
-        _errorMessage = null;
-      },
-    );
+          _errorMessage = null; // No mostrar error en inicio
+        },
+        (user) {
+          if (user != null) {
+            _status = AuthStatus.authenticated;
+            _currentUser = user;
+          } else {
+            _status = AuthStatus.unauthenticated;
+            _currentUser = null;
+          }
+          _errorMessage = null;
+        },
+      );
+    } catch (e) {
+      _status = AuthStatus.unauthenticated;
+      _currentUser = null;
+      _errorMessage = null;
+    }
 
     notifyListeners();
   }
@@ -94,14 +100,14 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     final result = await loginUseCase(
-      email: email,
+      email: email.trim(),
       password: password,
     );
 
     return result.fold(
       (failure) {
         _status = AuthStatus.error;
-        _errorMessage = failure.message;
+        _errorMessage = _getFriendlyErrorMessage(failure.message);
         notifyListeners();
         return false;
       },
@@ -128,17 +134,17 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     final result = await registerUseCase(
-      email: email,
+      email: email.trim(),
       password: password,
-      nombre: nombre,
-      apellido: apellido,
+      nombre: nombre.trim(),
+      apellido: apellido?.trim(),
       tipoUsuario: tipoUsuario,
     );
 
     return result.fold(
       (failure) {
         _status = AuthStatus.error;
-        _errorMessage = failure.message;
+        _errorMessage = _getFriendlyErrorMessage(failure.message);
         notifyListeners();
         return false;
       },
@@ -158,12 +164,12 @@ class AuthProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await resetPasswordUseCase(email: email);
+    final result = await resetPasswordUseCase(email: email.trim());
 
     return result.fold(
       (failure) {
         _status = AuthStatus.error;
-        _errorMessage = failure.message;
+        _errorMessage = _getFriendlyErrorMessage(failure.message);
         notifyListeners();
         return false;
       },
@@ -193,5 +199,44 @@ class AuthProvider with ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Convertir mensajes de error técnicos a mensajes amigables
+  String _getFriendlyErrorMessage(String technicalMessage) {
+    final lowerMessage = technicalMessage.toLowerCase();
+    
+    if (lowerMessage.contains('email not confirmed')) {
+      return 'Por favor, confirma tu email antes de iniciar sesión';
+    }
+    
+    if (lowerMessage.contains('invalid login credentials') ||
+        lowerMessage.contains('invalid email or password')) {
+      return 'Email o contraseña incorrectos';
+    }
+    
+    if (lowerMessage.contains('user already registered') ||
+        lowerMessage.contains('email already exists')) {
+      return 'Este email ya está registrado';
+    }
+    
+    if (lowerMessage.contains('weak password')) {
+      return 'La contraseña es demasiado débil';
+    }
+    
+    if (lowerMessage.contains('network') || 
+        lowerMessage.contains('connection')) {
+      return 'Error de conexión. Verifica tu internet';
+    }
+    
+    if (lowerMessage.contains('timeout')) {
+      return 'La solicitud tardó demasiado. Intenta nuevamente';
+    }
+
+    if (lowerMessage.contains('rate limit')) {
+      return 'Demasiados intentos. Espera un momento';
+    }
+    
+    // Mensaje genérico si no se reconoce el error
+    return 'Ocurrió un error. Por favor, intenta nuevamente';
   }
 }

@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
 
   @override
   void dispose() {
@@ -26,6 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    // Limpiar errores previos
+    context.read<AuthProvider>().clearError();
+    
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = context.read<AuthProvider>();
@@ -38,19 +42,49 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Navegar a la pantalla principal
-      // TODO: Implementar navegación
+      // La navegación se maneja automáticamente en AuthWrapper
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('¡Bienvenido!'),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '¡Bienvenido ${authProvider.currentUser?.nombre ?? ""}!',
+                ),
+              ),
+            ],
+          ),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Error al iniciar sesión'),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(authProvider.errorMessage ?? 'Error al iniciar sesión'),
+              ),
+            ],
+          ),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          action: SnackBarAction(
+            label: 'Reintentar',
+            textColor: Colors.white,
+            onPressed: _handleLogin,
+          ),
         ),
       );
     }
@@ -70,10 +104,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 40),
                 
                 // Logo
-                const Icon(
-                  Icons.pets,
-                  size: 80,
-                  color: Colors.deepPurple,
+                Hero(
+                  tag: 'app_logo',
+                  child: Icon(
+                    Icons.pets,
+                    size: 80,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
                 
                 const SizedBox(height: 24),
@@ -83,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'PetAdopt',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                    color: Theme.of(context).primaryColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -104,6 +141,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.email],
                   decoration: InputDecoration(
                     labelText: 'Email',
                     hintText: 'tu@email.com',
@@ -113,6 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   validator: Validators.validateEmail,
+                  onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                 ),
                 
                 const SizedBox(height: 16),
@@ -121,6 +161,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock_outlined),
@@ -146,19 +188,52 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                     return null;
                   },
+                  onFieldSubmitted: (_) => _handleLogin(),
                 ),
                 
                 const SizedBox(height: 8),
                 
-                // Forgot password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/reset-password');
-                    },
-                    child: const Text('¿Olvidaste tu contraseña?'),
-                  ),
+                // Remember me y Forgot password
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberMe = value ?? false;
+                              });
+                            },
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Recordarme',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/reset-password');
+                      },
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
                 
                 const SizedBox(height: 24),
@@ -233,6 +308,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+
+                const SizedBox(height: 24),
+                
+                // Términos y condiciones
+                Text(
+                  'Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

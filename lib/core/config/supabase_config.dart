@@ -30,8 +30,8 @@ class SupabaseConfig {
   // Auth
   static GoTrueClient get auth => client.auth;
   
-  // Database
-  static PostgrestClient get db => client;
+  // Database (retornamos el cliente Supabase — usar `db.client` o `db.from(...)` para queries)
+  static SupabaseClient get db => client;
   
   // Storage
   static SupabaseStorageClient get storage => client.storage;
