@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Email - PetAdopt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .loading {
+            background: #f0f7ff;
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            color: #15803d;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .redirect-info {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .countdown {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin-top: 20px;
+            transition: transform 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🐾</div>
+        <h1>PetAdopt</h1>
+        
+        <div id="status-container">
+            <div class="status loading">
+                <div class="spinner"></div>
+                <p>Verificando tu cuenta...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/env-config.js"></script>
+    <script>
+        // Obtener parámetros de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const type = urlParams.get('type');
+        
+        const statusContainer = document.getElementById('status-container');
+
+        async function verifyEmail() {
+            if (!token || type !== 'signup') {
+                showError('Enlace de verificación inválido. Por favor, solicita un nuevo correo de confirmación.');
+                return;
+            }
+
+            try {
+                // Leer SUPABASE_URL desde env-config (generado desde .env)
+                const SUPABASE_URL = (window.__ENV && window.__ENV.SUPABASE_URL) || '';
+                
+                if (!SUPABASE_URL) {
+                    showError('Error de configuración: SUPABASE_URL no está definida.');
+                    return;
+                }
+
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'signup',
+                        token: token
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess();
+                } else {
+                    showError(data.error_description || 'Error al verificar la cuenta. El enlace puede haber expirado.');
+                }
+            } catch (error) {
+                showError('Error de conexión. Por favor, intenta nuevamente.');
+                console.error('Error:', error);
+            }
+        }
+
+        function showSuccess() {
+            let countdown = 5;
+            statusContainer.innerHTML = `
+                <div class="status success">
+                    <div class="icon">✅</div>
+                    <h2>¡Cuenta Verificada!</h2>
+                    <p>Tu cuenta ha sido activada exitosamente.</p>
+                    <p>Ya puedes iniciar sesión en PetAdopt y comenzar a ayudar mascotas a encontrar un hogar.</p>
+                    <div class="redirect-info">
+                        Redirigiendo a la aplicación en <span class="countdown">${countdown}</span> segundos...
+                    </div>
+                    <a href="petadopt://verified" class="btn">Abrir PetAdopt</a>
+                </div>
+            `;
+
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                const countdownElement = document.querySelector('.countdown');
+                if (countdownElement) {
+                    countdownElement.textContent = countdown;
+                }
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    // Intentar abrir la app
+                    window.location.href = 'petadopt://verified';
+                }
+            }, 1000);
+        }
+
+        function showError(message) {
+            statusContainer.innerHTML = `
+                <div class="status error">
+                    <div class="icon">❌</div>
+                    <h2>Error en la Verificación</h2>
+                    <p>${message}</p>
+                    <a href="petadopt://error" class="btn">Volver a PetAdopt</a>
+                </div>
+            `;
+        }
+
+        // Ejecutar verificación al cargar la página
+        verifyEmail();
+    </script>
+</body>
+</html>

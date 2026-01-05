@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "Vercel pages for email verification and password reset",
   "scripts": {
-    "deploy": "vercel --prod"
+    "generate-env": "node scripts/generate-env.js",
+    "deploy": "npm run generate-env && vercel --prod"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "dotenv": "^16.0.0"
+  }
 }
