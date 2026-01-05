@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificar Email - PetAdopt</title>
+    <title>Cuenta Confirmada - PetAdopt</title>
     <style>
         * {
             margin: 0;
@@ -60,7 +60,10 @@
             font-size: 28px;
         }
 
-        .status {
+        .success {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            color: #15803d;
             padding: 20px;
             border-radius: 10px;
             margin: 20px 0;
@@ -68,37 +71,34 @@
             line-height: 1.6;
         }
 
-        .loading {
-            background: #f0f7ff;
-            border: 2px solid #3b82f6;
-            color: #1e40af;
+        .icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+            animation: checkmark 0.8s ease-in-out;
         }
 
-        .success {
-            background: #f0fdf4;
-            border: 2px solid #22c55e;
+        @keyframes checkmark {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) rotate(0deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .success h2 {
             color: #15803d;
+            margin-bottom: 15px;
+            font-size: 24px;
         }
 
-        .error {
-            background: #fef2f2;
-            border: 2px solid #ef4444;
-            color: #991b1b;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .success p {
+            margin-bottom: 10px;
         }
 
         .redirect-info {
@@ -110,18 +110,20 @@
         .countdown {
             font-weight: bold;
             color: #667eea;
+            font-size: 18px;
         }
 
         .btn {
             display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 30px;
+            padding: 15px 40px;
             border-radius: 25px;
             text-decoration: none;
             margin-top: 20px;
-            transition: transform 0.2s;
+            transition: all 0.3s;
             font-weight: 600;
+            font-size: 16px;
         }
 
         .btn:hover {
@@ -129,9 +131,30 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .icon {
-            font-size: 50px;
+        .features {
+            margin-top: 30px;
+            text-align: left;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+
+        .features h3 {
+            color: #333;
             margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .feature-item span {
+            margin-right: 10px;
+            font-size: 20px;
         }
     </style>
 </head>
@@ -140,126 +163,59 @@
         <div class="logo">🐾</div>
         <h1>PetAdopt</h1>
         
-        <div id="status-container">
-            <div class="status loading">
-                <div class="spinner"></div>
-                <p>Verificando tu cuenta...</p>
+        <div class="success">
+            <div class="icon">✅</div>
+            <h2>¡Cuenta Confirmada!</h2>
+            <p>Tu cuenta ha sido verificada exitosamente.</p>
+            <p>Ya puedes iniciar sesión en PetAdopt y comenzar a ayudar mascotas a encontrar un hogar.</p>
+            <div class="redirect-info">
+                Redirigiendo a la aplicación en <span class="countdown" id="countdown">5</span> segundos...
+            </div>
+            <a href="loginpro://verified" class="btn">Abrir PetAdopt Ahora</a>
+        </div>
+
+        <div class="features">
+            <h3>¿Qué puedes hacer ahora?</h3>
+            <div class="feature-item">
+                <span>🏠</span>
+                <span>Publicar mascotas en adopción</span>
+            </div>
+            <div class="feature-item">
+                <span>❤️</span>
+                <span>Adoptar mascotas que necesitan hogar</span>
+            </div>
+            <div class="feature-item">
+                <span>💬</span>
+                <span>Conectar con otros amantes de animales</span>
+            </div>
+            <div class="feature-item">
+                <span>📱</span>
+                <span>Recibir notificaciones de nuevas adopciones</span>
             </div>
         </div>
     </div>
 
     <script>
-        // Obtener parámetros de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        const type = urlParams.get('type');
-        
-        const statusContainer = document.getElementById('status-container');
+        // Countdown y redirección
+        let countdown = 5;
+        const countdownElement = document.getElementById('countdown');
 
-        async function loadConfig() {
-            try {
-                const response = await fetch('/api/config');
-                const config = await response.json();
-                return config;
-            } catch (error) {
-                console.error('Error loading config:', error);
-                return null;
-            }
-        }
-
-        async function verifyEmail() {
-            // tomar token o token_hash (compatibilidad)
-            const tokenRaw = urlParams.get('token') || urlParams.get('token_hash');
-            const typeParam = type;
-
-            if (!tokenRaw || typeParam !== 'signup') {
-                showError('Enlace de verificación inválido. Por favor, solicita un nuevo correo de confirmación.');
-                return;
-            }
-
-            const token = decodeURIComponent(tokenRaw);
-
-            try {
-                const config = await loadConfig();
-                if (!config || !config.supabaseUrl || !config.supabaseAnonKey) {
-                    console.error('Config inválida:', config);
-                    showError('Error de configuración. Contacta al administrador.');
-                    return;
-                }
-
-                const res = await fetch(`${config.supabaseUrl}/auth/v1/verify`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': config.supabaseAnonKey
-                    },
-                    body: JSON.stringify({ type: 'signup', token })
-                });
-
-                const json = await res.json().catch(() => null);
-                console.log('verify response:', res.status, json);
-
-                if (res.ok) {
-                    showSuccess();
-                    return;
-                }
-
-                // mensajes más específicos para ayudar a debug
-                if (res.status === 401 || (json && (json.error || json.error_description))) {
-                    console.warn('verify failed detail:', json);
-                    showError('No se pudo verificar la cuenta — el enlace puede ser inválido o expiró.');
-                } else {
-                    showError('Error al verificar la cuenta. Por favor, intenta nuevamente más tarde.');
-                }
-            } catch (err) {
-                console.error('verify error:', err);
-                showError('Error de conexión. Por favor, intenta nuevamente.');
-            }
-        }
-
-        function showSuccess() {
-            let countdown = 5;
-            statusContainer.innerHTML = `
-                <div class="status success">
-                    <div class="icon">✅</div>
-                    <h2>¡Cuenta Verificada!</h2>
-                    <p>Tu cuenta ha sido activada exitosamente.</p>
-                    <p>Ya puedes iniciar sesión en PetAdopt y comenzar a ayudar mascotas a encontrar un hogar.</p>
-                    <div class="redirect-info">
-                        Redirigiendo a la aplicación en <span class="countdown">${countdown}</span> segundos...
-                    </div>
-                    <a href="petadopt://verified" class="btn">Abrir PetAdopt</a>
-                </div>
-            `;
-
-            const countdownInterval = setInterval(() => {
-                countdown--;
-                const countdownElement = document.querySelector('.countdown');
-                if (countdownElement) {
-                    countdownElement.textContent = countdown;
-                }
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                // Intentar abrir la app
+                window.location.href = 'loginpro://verified';
                 
-                if (countdown <= 0) {
-                    clearInterval(countdownInterval);
-                    // Intentar abrir la app
-                    window.location.href = 'petadopt://verified';
-                }
-            }, 1000);
-        }
-
-        function showError(message) {
-            statusContainer.innerHTML = `
-                <div class="status error">
-                    <div class="icon">❌</div>
-                    <h2>Error en la Verificación</h2>
-                    <p>${message}</p>
-                    <a href="petadopt://error" class="btn">Volver a PetAdopt</a>
-                </div>
-            `;
-        }
-
-        // Ejecutar verificación al cargar la página
-        verifyEmail();
+                // Fallback después de 2 segundos (si la app no se abre)
+                setTimeout(() => {
+                    // Puedes redirigir a tu sitio web o dejar la página como está
+                    console.log('App no se abrió, usuario permanece en la página');
+                }, 2000);
+            }
+        }, 1000);
     </script>
 </body>
 </html>
