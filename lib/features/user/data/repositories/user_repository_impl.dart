@@ -6,6 +6,7 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../datasources/user_remote_datasource.dart';
+import '../../../../core/config/supabase_config.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSourceImpl? remoteDataSource;
@@ -14,6 +15,36 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<Either<Failure, UserEntity>> getCurrentUserProfile() async {
+    // Try to obtain the currently authenticated user from Supabase if available
+    try {
+      final sbUser = SupabaseConfig.auth.currentUser;
+      if (sbUser != null) {
+        final email = sbUser.email ?? 'unknown@local';
+        final nombre = (sbUser.userMetadata != null && sbUser.userMetadata['name'] != null)
+            ? sbUser.userMetadata['name'] as String
+            : email.split('@').first;
+        final now = DateTime.now();
+        final user = UserEntity(
+          id: sbUser.id,
+          email: email,
+          nombre: nombre,
+          apellido: null,
+          tipoUsuario: 'adoptante',
+          telefono: null,
+          direccion: null,
+          ciudad: null,
+          provincia: null,
+          avatarUrl: null,
+          verificado: false,
+          createdAt: now,
+          updatedAt: now,
+        );
+        return Right(user);
+      }
+    } catch (_) {
+      // If Supabase isn't initialized or something goes wrong, fall back to demo user
+    }
+
     final now = DateTime.now();
     final user = UserEntity(
       id: 'demo',

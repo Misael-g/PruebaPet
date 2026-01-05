@@ -29,6 +29,28 @@ import 'features/user/presentation/providers/user_provider.dart';
 import 'features/user/presentation/screens/profile_screen.dart';
 import 'features/user/presentation/screens/edit_profile_screen.dart';
 
+// Pets
+import 'features/pets/data/datasources/pets_remote_datasource.dart';
+import 'features/pets/data/repositories/pets_repository_impl.dart';
+import 'features/pets/domain/repositories/pets_repository.dart';
+import 'features/pets/presentation/providers/pets_provider.dart';
+import 'features/pets/presentation/screens/home_screen.dart' as pets_home;
+import 'features/pets/presentation/screens/pet_detail_screen.dart';
+
+// Favorites
+import 'features/favorites/data/datasources/favorites_remote_datasource.dart';
+import 'features/favorites/data/repositories/favorites_repository_impl.dart';
+import 'features/favorites/presentation/providers/favorites_provider.dart';
+import 'features/favorites/presentation/screens/favorites_screen.dart';
+
+// Adoption Requests
+import 'features/adoption_requests/data/datasources/adoption_requests_remote_datasource.dart';
+import 'features/adoption_requests/data/repositories/adoption_requests_repository_impl.dart';
+import 'features/adoption_requests/presentation/providers/adoption_requests_provider.dart';
+import 'features/adoption_requests/presentation/screens/request_form_screen.dart';
+import 'features/adoption_requests/presentation/screens/my_requests_screen.dart';
+import 'features/adoption_requests/presentation/screens/request_detail_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -65,7 +87,7 @@ class MyApp extends StatelessWidget {
           create: (context) {
             final dataSource = UserRemoteDataSourceImpl();
             final repository = UserRepositoryImpl(remoteDataSource: dataSource);
-            
+
             return UserProvider(
               getCurrentUserUseCase: GetCurrentUserUseCase(repository),
               updateProfileUseCase: UpdateProfileUseCase(repository),
@@ -73,6 +95,33 @@ class MyApp extends StatelessWidget {
               updateAvatarUseCase: UpdateAvatarUseCase(repository),
               deleteAvatarUseCase: DeleteAvatarUseCase(repository),
             );
+          },
+        ),
+
+        // Pets Provider
+        ChangeNotifierProvider(
+          create: (context) {
+            final dataSource = PetsRemoteDataSourceImpl();
+            final repository = PetsRepositoryImpl(remoteDataSource: dataSource);
+            return PetsProvider(repository: repository);
+          },
+        ),
+
+        // Favorites Provider
+        ChangeNotifierProvider(
+          create: (context) {
+            final dataSource = FavoritesRemoteDataSourceImpl();
+            final repository = FavoritesRepositoryImpl(remoteDataSource: dataSource);
+            return FavoritesProvider(repository: repository);
+          },
+        ),
+
+        // Adoption Requests Provider
+        ChangeNotifierProvider(
+          create: (context) {
+            final dataSource = AdoptionRequestsRemoteDataSourceImpl();
+            final repository = AdoptionRequestsRepositoryImpl(remoteDataSource: dataSource);
+            return AdoptionRequestsProvider(repository: repository);
           },
         ),
       ],
@@ -120,6 +169,23 @@ class MyApp extends StatelessWidget {
           '/reset-password': (context) => const ResetPasswordScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
+          '/pet-detail': (context) {
+            final id = ModalRoute.of(context)!.settings.arguments as String?;
+            if (id == null) return const Scaffold(body: Center(child: Text('ID de mascota inválido')));
+            return PetDetailScreen(petId: id);
+          },
+          '/favorites': (context) => const FavoritesScreen(),
+          '/request-form': (context) {
+            final petId = ModalRoute.of(context)!.settings.arguments as String?;
+            if (petId == null) return const Scaffold(body: Center(child: Text('Pet ID requerido')));
+            return RequestAdoptionScreen(petId: petId);
+          },
+          '/my-requests': (context) => const MyRequestsScreen(),
+          '/request-detail': (context) {
+            final id = ModalRoute.of(context)!.settings.arguments as String?;
+            if (id == null) return const Scaffold(body: Center(child: Text('ID de solicitud inválido')));
+            return RequestDetailScreen(requestId: id);
+          },
         },
         initialRoute: '/',
       ),
@@ -141,7 +207,8 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (authProvider.isAuthenticated) {
-          return HomeScreen(user: authProvider.currentUser!);
+          // Mostrar la pantalla de mascotas (real)
+          return const pets_home.HomeScreen();
         }
         
         return const LoginScreen();

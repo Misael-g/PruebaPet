@@ -1,0 +1,166 @@
+// lib/features/pets/data/models/pet_model.dart
+
+import '../../domain/entities/pet_entity.dart';
+
+class PetModel extends PetEntity {
+  const PetModel({
+    required super.id,
+    required super.refugioId,
+    required super.nombre,
+    required super.especie,
+    super.raza,
+    super.edadAnios,
+    super.edadMeses,
+    super.sexo,
+    super.tamanio,
+    super.pesoKg,
+    super.color,
+    super.descripcion,
+    super.personalidad,
+    super.requisitosAdopcion,
+    super.historia,
+    super.estadoSalud,
+    super.vacunado,
+    super.esterilizado,
+    super.desparasitado,
+    super.necesidadesEspeciales,
+    super.buenoConNinos,
+    super.buenoConPerros,
+    super.buenoConGatos,
+    super.imagenPrincipal,
+    super.imagenes,
+    super.estado,
+    super.fechaRescate,
+    super.fechaIngreso,
+    required super.fechaPublicacion,
+    super.visitas,
+    required super.createdAt,
+    required super.updatedAt,
+    super.nombreRefugio,
+    super.ciudadRefugio,
+  });
+
+  factory PetModel.fromJson(Map<String, dynamic> json) {
+    return PetModel(
+      id: json['id'] as String,
+      refugioId: json['refugio_id'] as String,
+      nombre: json['nombre'] as String,
+      especie: json['especie'] as String,
+      raza: json['raza'] as String?,
+      edadAnios: json['edad_años'] as int?,
+      edadMeses: json['edad_meses'] as int?,
+      sexo: json['sexo'] as String?,
+      tamanio: json['tamaño'] as String?,
+      pesoKg: json['peso_kg'] != null ? (json['peso_kg'] as num).toDouble() : null,
+      color: json['color'] as String?,
+      descripcion: json['descripcion'] as String?,
+      personalidad: json['personalidad'] != null 
+          ? List<String>.from(json['personalidad'] as List)
+          : null,
+      requisitosAdopcion: json['requisitos_adopcion'] as String?,
+      historia: json['historia'] as String?,
+      estadoSalud: json['estado_salud'] as String?,
+      vacunado: json['vacunado'] as bool? ?? false,
+      esterilizado: json['esterilizado'] as bool? ?? false,
+      desparasitado: json['desparasitado'] as bool? ?? false,
+      necesidadesEspeciales: json['necesidades_especiales'] as String?,
+      buenoConNinos: json['bueno_con_niños'] as bool?,
+      buenoConPerros: json['bueno_con_perros'] as bool?,
+      buenoConGatos: json['bueno_con_gatos'] as bool?,
+      imagenPrincipal: json['imagen_principal'] as String?,
+      imagenes: json['imagenes'] != null 
+          ? List<String>.from(json['imagenes'] as List)
+          : null,
+      estado: json['estado'] as String? ?? 'disponible',
+      fechaRescate: json['fecha_rescate'] != null
+          ? DateTime.parse(json['fecha_rescate'] as String)
+          : null,
+      fechaIngreso: json['fecha_ingreso'] != null
+          ? DateTime.parse(json['fecha_ingreso'] as String)
+          : null,
+      fechaPublicacion: DateTime.parse(json['fecha_publicacion'] as String),
+      visitas: json['visitas'] as int? ?? 0,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      // Datos del refugio si vienen del join
+      nombreRefugio: json['refugios']?['nombre_refugio'] as String?,
+      ciudadRefugio: json['refugios']?['ciudad'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'refugio_id': refugioId,
+      'nombre': nombre,
+      'especie': especie,
+      'raza': raza,
+      'edad_años': edadAnios,
+      'edad_meses': edadMeses,
+      'sexo': sexo,
+      'tamaño': tamanio,
+      'peso_kg': pesoKg,
+      'color': color,
+      'descripcion': descripcion,
+      'personalidad': personalidad,
+      'requisitos_adopcion': requisitosAdopcion,
+      'historia': historia,
+      'estado_salud': estadoSalud,
+      'vacunado': vacunado,
+      'esterilizado': esterilizado,
+      'desparasitado': desparasitado,
+      'necesidades_especiales': necesidadesEspeciales,
+      'bueno_con_niños': buenoConNinos,
+      'bueno_con_perros': buenoConPerros,
+      'bueno_con_gatos': buenoConGatos,
+      'imagen_principal': imagenPrincipal,
+      'imagenes': imagenes,
+      'estado': estado,
+      'fecha_rescate': fechaRescate?.toIso8601String().split('T')[0],
+      'fecha_ingreso': fechaIngreso?.toIso8601String().split('T')[0],
+      'fecha_publicacion': fechaPublicacion.toIso8601String(),
+      'visitas': visitas,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  factory PetModel.fromEntity(PetEntity entity) {
+    return PetModel(
+      id: entity.id,
+      refugioId: entity.refugioId,
+      nombre: entity.nombre,
+      especie: entity.especie,
+      raza: entity.raza,
+      edadAnios: entity.edadAnios,
+      edadMeses: entity.edadMeses,
+      sexo: entity.sexo,
+      tamanio: entity.tamanio,
+      pesoKg: entity.pesoKg,
+      color: entity.color,
+      descripcion: entity.descripcion,
+      personalidad: entity.personalidad,
+      requisitosAdopcion: entity.requisitosAdopcion,
+      historia: entity.historia,
+      estadoSalud: entity.estadoSalud,
+      vacunado: entity.vacunado,
+      esterilizado: entity.esterilizado,
+      desparasitado: entity.desparasitado,
+      necesidadesEspeciales: entity.necesidadesEspeciales,
+      buenoConNinos: entity.buenoConNinos,
+      buenoConPerros: entity.buenoConPerros,
+      buenoConGatos: entity.buenoConGatos,
+      imagenPrincipal: entity.imagenPrincipal,
+      imagenes: entity.imagenes,
+      estado: entity.estado,
+      fechaRescate: entity.fechaRescate,
+      fechaIngreso: entity.fechaIngreso,
+      fechaPublicacion: entity.fechaPublicacion,
+      visitas: entity.visitas,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      nombreRefugio: entity.nombreRefugio,
+      ciudadRefugio: entity.ciudadRefugio,
+    );
+  }
+}
